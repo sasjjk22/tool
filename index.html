@@ -231,7 +231,8 @@
 
     <div id="reverse" class="content">
         <div style="background:#fffbf0; padding:12px; border-radius:8px; font-size:13px; color:#b37400; margin-bottom:15px; border:1px solid #ffeeba;">
-            💡 已知放款额和月供，反算真实年化利率(IRR)。
+            💡 已知放款额和月供，反算真实年化利率(IRR)。<br>
+            *注: 若选择等额本金模式，月供请填<b>首月月供</b>。
         </div>
         <div class="form-group">
             <label>反推模式</label>
@@ -618,7 +619,6 @@
 
         // 智能列表：如果非 RMB 兑换，强制显示 RMB
         let others = ['USD','EUR','JPY','HKD','GBP','CNY'].filter(c => c!==f && c!==t);
-        // 去重
         others = [...new Set(others)];
         
         let html = others.map(c => {
@@ -702,46 +702,86 @@
         document.getElementById('densityNoteBox').style.display = 'block';
     }
 
-    /* --- 📉 反推利率 --- */
+    /* --- 📉 反推利率 (核心逻辑修复) --- */
     function calculateReverseRate() {
         let mode = document.getElementById('revMode').value;
         let method = document.getElementById('revMethod').value;
         let P = parseFloat(document.getElementById('revPrincipal').value) * 10000;
         let n = parseFloat(document.getElementById('revYears').value) * 12;
+
         if(isNaN(P) || isNaN(n) || P<=0 || n<=0) { alert("请输入有效数值"); return; }
+
         let targetMonthly = 0;
-        let totalPay = 0;
+        let targetTotalInterest = 0;
+
         if(mode === 'target_monthly_payment') {
             targetMonthly = parseFloat(document.getElementById('revMonthly').value);
-            if(isNaN(targetMonthly)) return;
-            totalPay = targetMonthly * n;
+            if(isNaN(targetMonthly)) { alert("请输入有效的月供"); return; }
         } else {
-            let totalInt = parseFloat(document.getElementById('revInterest').value) * 10000;
-            if(isNaN(totalInt)) return;
-            totalPay = P + totalInt;
-            targetMonthly = totalPay / n; 
+            targetTotalInterest = parseFloat(document.getElementById('revInterest').value) * 10000;
+            if(isNaN(targetTotalInterest)) { alert("请输入有效的总利息"); return; }
         }
+
         let rate = 0;
+        let totalPayDisplay = 0;
+
+        // 场景 A: 等额本金
         if(method === 'equal_principal') {
-            let intVal = totalPay - P;
-            rate = (2 * intVal) / ((n+1)*P) * 12;
-        } else {
-            let min = 0, max = 1; 
-            for(let i=0; i<50; i++) {
+            if(mode === 'target_monthly_payment') {
+                // 等额本金+已知月供 -> 视为【首月月供】进行反推
+                // 首月月供 = P/n + P*r -> r = (月供 - P/n)/P
+                let monthlyPrincipal = P / n;
+                if(targetMonthly <= monthlyPrincipal) {
+                    alert("输入的月供必须大于每月本金 (" + monthlyPrincipal.toFixed(2) + "元)");
+                    return;
+                }
+                let r_month = (targetMonthly - monthlyPrincipal) / P;
+                rate = r_month * 12;
+                totalPayDisplay = P + (n+1)*P*r_month/2;
+            } else {
+                // 等额本金+已知总利息 -> 公式推导
+                let r_month = (targetTotalInterest * 2) / ((n+1)*P);
+                rate = r_month * 12;
+                totalPayDisplay = P + targetTotalInterest;
+            }
+        } 
+        // 场景 B: 等额本息 (二分查找逼近)
+        else {
+            let targetM = 0;
+            if(mode === 'target_interest') {
+                totalPayDisplay = P + targetTotalInterest;
+                targetM = totalPayDisplay / n; // 转换为平均月供
+            } else {
+                targetM = targetMonthly;
+                totalPayDisplay = targetM * n;
+            }
+            
+            let min = 0, max = 1; // 假设月利率上限 100%
+            for(let i=0; i<100; i++) {
                 let mid = (min+max)/2;
                 let k = Math.pow(1+mid, n);
-                let m = P*mid*k/(k-1);
-                if(mode === 'target_monthly_payment') { if(m > targetMonthly) max = mid; else min = mid; } 
-                else { if(m*n > totalPay) max = mid; else min = mid; }
+                let m = P * mid * k / (k-1);
+                if(m > targetM) max = mid; else min = mid;
+                if(Math.abs(m - targetM) < 0.001) break;
             }
             rate = min * 12;
         }
+
         document.getElementById('revRateResult').innerText = (rate*100).toFixed(3) + "%";
-        document.getElementById('revTotalPay').innerText = (totalPay/10000).toFixed(2) + " 万";
-        let note = mode === 'target_monthly_payment' ? `总利息: ${((totalPay-P)/10000).toFixed(2)}万` : `参考月供: ${targetMonthly.toFixed(0)}元`;
+        document.getElementById('revTotalPay').innerText = (totalPayDisplay/10000).toFixed(2) + " 万";
+        
+        let note = "";
+        if(method === 'equal_principal' && mode === 'target_monthly_payment') {
+            note = "基于首月月供反推";
+        } else {
+            note = mode === 'target_monthly_payment' ? 
+                   `总利息: ${((totalPayDisplay-P)/10000).toFixed(2)}万` : 
+                   `参考月供: ${(totalPayDisplay/n).toFixed(0)}元`;
+        }
         document.getElementById('revOtherResult').innerText = note;
         document.getElementById('revResult').style.display = 'block';
     }
+
     function updateRevInputs() {
         let mode = document.getElementById('revMode').value;
         document.getElementById('inputMonthly').style.display = mode === 'target_monthly_payment' ? 'block' : 'none';
