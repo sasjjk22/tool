@@ -9,13 +9,12 @@
           content="default-src 'self'; 
                    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; 
                    style-src 'self' 'unsafe-inline'; 
-                   connect-src 'self' https://api.exchangerate-api.com; 
+                   connect-src 'self' https://api.exchangerate-api.com https://cdn.jsdelivr.net https://api.gold-api.com https://api.gdeltproject.org https://api.rss2json.com; 
                    img-src 'self' data: https://flagcdn.com; 
                    object-src 'none'; 
                    frame-ancestors 'none';">
 
     <script>if(self!==top){top.location=self.location;}</script>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -34,25 +33,53 @@
             -webkit-tap-highlight-color: transparent;
         }
         .container { 
-            background: var(--card); width: 100%; max-width: 600px; 
+            background: var(--card); width: 100%; max-width: 640px; 
             border-radius: 20px; box-shadow: var(--shadow); 
             overflow: hidden; display: flex; flex-direction: column; margin-bottom: 40px;
         }
         
         /* 头部 */
-        .header-section { padding: 18px; background: linear-gradient(180deg, #eaf4ff 0%, #fff 100%); text-align: center; border-bottom: 1px solid #eee; }
+        .header-section { padding: 16px; background: linear-gradient(180deg, #eaf4ff 0%, #fff 100%); text-align: center; border-bottom: 1px solid #eee; }
         .header-section h1 { margin: 0 0 4px; font-size: 20px; color: #005bb5; font-weight: 800; }
         .header-section p { margin: 0; font-size: 12px; color: #666; }
 
-        /* 🧭 导航栏 (双排宫格) */
+        /* 📰 顶部重大新闻条框 */
+        .news-ticker-bar {
+            display: flex; align-items: center; gap: 8px;
+            background: #1c2433; color: #fff; padding: 8px 12px;
+            font-size: 12px; border-bottom: 1px solid #2b3548;
+        }
+        .ticker-badge {
+            background: #ff3b30; color: #fff; font-weight: 700;
+            padding: 2px 6px; border-radius: 4px; flex-shrink: 0; font-size: 11px;
+        }
+        .ticker-cat {
+            background: rgba(255,255,255,0.14); color: #ffd60a;
+            padding: 2px 6px; border-radius: 4px; flex-shrink: 0; font-size: 11px;
+        }
+        .ticker-link-wrap {
+            flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+        }
+        .ticker-link {
+            color: #f2f4f8; text-decoration: none; cursor: pointer;
+        }
+        .ticker-link:hover { text-decoration: underline; color: #70b8ff; }
+        .ticker-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .ticker-btn {
+            background: rgba(255,255,255,0.12); color: #fff; border: none;
+            border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer;
+        }
+        .ticker-btn:hover { background: rgba(255,255,255,0.24); }
+
+        /* 🧭 导航栏 (四列双排) */
         .nav-grid { 
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; 
-            padding: 12px; background: #fff; border-bottom: 1px solid #eee; 
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; 
+            padding: 10px 12px; background: #fff; border-bottom: 1px solid #eee; 
         }
         .nav-btn { 
-            padding: 10px 0; border: 1px solid #f0f0f0; background: #f8f9fa; 
-            border-radius: 10px; font-size: 14px; font-weight: 600; color: #555; 
-            cursor: pointer; transition: all 0.2s; 
+            padding: 9px 2px; border: 1px solid #f0f0f0; background: #f8f9fa; 
+            border-radius: 10px; font-size: 13px; font-weight: 600; color: #555; 
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
         }
         .nav-btn.active { 
             background: #eff6ff; color: var(--primary); border-color: var(--primary); 
@@ -60,70 +87,125 @@
         }
         
         /* 内容区 */
-        .content { padding: 20px 16px; display: none; animation: fadeIn 0.2s ease-out; }
+        .content { padding: 18px 16px; display: none; animation: fadeIn 0.2s ease-out; }
         .content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
         
         /* 表单控件 */
-        .form-group { margin-bottom: 15px; }
+        .form-group { margin-bottom: 14px; }
         label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #444; }
         
-        /* 通用输入框 */
         input, select { 
-            width: 100%; padding: 12px; border: 1px solid #dce0e5; border-radius: 10px; 
-            font-size: 16px; outline: none; box-sizing: border-box; background: #fff; appearance: none;
+            width: 100%; padding: 11px 12px; border: 1px solid #dce0e5; border-radius: 10px; 
+            font-size: 15px; outline: none; box-sizing: border-box; background: #fff; appearance: none;
             transition: border 0.2s;
         }
         input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
         
-        /* 汇率特殊布局：[金额] [国旗] [币种] */
+        /* 汇率特殊布局 */
         .forex-row { display: flex; align-items: center; gap: 8px; }
         .forex-row input { flex: 1; min-width: 0; font-weight: bold; color: var(--primary); }
-        .forex-flag { width: 28px; height: 20px; border-radius: 3px; object-fit: cover; border: 1px solid #eee; }
-        .forex-select { flex: 0 0 110px; } /* 固定宽度 */
+        .forex-flag { width: 28px; height: 20px; border-radius: 3px; object-fit: cover; border: 1px solid #eee; flex-shrink: 0; }
+        .forex-select { flex: 0 0 115px; }
 
         select { background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007aff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 10px; padding-right: 25px; }
 
         /* 按钮 */
-        button.action-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--primary), #0062cc); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 12px rgba(0,122,255,0.2); }
+        button.action-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--primary), #0062cc); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 8px; box-shadow: 0 4px 12px rgba(0,122,255,0.2); }
         button.action-btn:active { transform: scale(0.98); }
-        button.reset-btn { background: #f0f2f5; color: #666; border: 1px solid #e1e4e8; margin-top: 10px; padding: 10px; width: 100%; border-radius: 10px; cursor: pointer; font-size: 14px; }
+        button.reset-btn { background: #f0f2f5; color: #666; border: 1px solid #e1e4e8; margin-top: 8px; padding: 10px; width: 100%; border-radius: 10px; cursor: pointer; font-size: 14px; }
         button.export-btn { width: 100%; padding: 12px; background: #34c759; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 6px; }
         
         /* 结果展示 */
-        .result-box { margin-top: 20px; padding: 15px; background: #f7faff; border: 1px solid #dceeff; border-radius: 12px; display: none; }
+        .result-box { margin-top: 18px; padding: 15px; background: #f7faff; border: 1px solid #dceeff; border-radius: 12px; display: none; }
         .result-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; border-bottom: 1px dashed #e6e6e6; padding-bottom: 8px; }
         .result-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .result-item strong { color: #007aff; font-weight: 700; }
         
-        /* 特殊结果框 */
         .comparison-box { background: #fffcf0; border-color: #ffeeba; margin-top: 15px; }
         .comparison-box h4 { color: #b37400 !important; margin: 0 0 10px 0; }
         .comparison-box .result-item strong { color: #b37400; }
         .early-repay-result { background: #eaffea; border: 1px solid #c3e6cb; color: #155724; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 14px; display: none; }
 
-        /* 布局 */
         .row-input { display: flex; gap: 10px; align-items: center; }
         .row-input input { flex: 2; }
         .row-input select { flex: 1; min-width: 0; } 
         
-        /* 图表 */
         .chart-wrapper { position: relative; height: 240px; width: 100%; margin-top: 20px; display: none; justify-content: center; }
 
-        /* 表格 */
         .schedule-container { margin-top: 20px; max-height: 300px; overflow-y: auto; border: 1px solid #e1e4e8; border-radius: 8px; display: none; -webkit-overflow-scrolling: touch; }
         table.schedule-tbl { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; white-space: nowrap; }
         table.schedule-tbl th { background: #f8f9fa; padding: 10px; position: sticky; top: 0; z-index: 1; color: #555; border-bottom: 1px solid #ddd; }
         table.schedule-tbl td { padding: 8px; border-bottom: 1px solid #eee; color: #666; }
-        
-        /* 汇率多币种 */
-        #forexMultiResult { margin-top: 15px; padding-top: 12px; border-top: 1px dashed #ddd; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; color: #555; }
-        .forex-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid #eee; }
-        
+
+        /* 💵 1美元实时汇率看板 */
+        .section-title {
+            margin: 18px 0 10px; font-size: 14px; color: #333; font-weight: 700;
+            border-left: 4px solid var(--primary); padding-left: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .usd-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;
+        }
+        .usd-card {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #f8fafd; border: 1px solid #e3ebf5; border-radius: 10px;
+            padding: 9px 10px; cursor: pointer; transition: all 0.15s;
+        }
+        .usd-card:hover { border-color: var(--primary); background: #eff6ff; }
+        .usd-left { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #333; }
+        .usd-left small { display: block; font-size: 11px; color: #888; }
+        .usd-val { font-weight: 700; color: #005bb5; font-size: 14px; text-align: right; }
+        .usd-val small { display: block; font-size: 10px; color: #888; font-weight: normal; }
+
+        /* 🥇 贵金属克价看板 */
+        .metal-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;
+        }
+        .metal-card {
+            background: linear-gradient(145deg, #fffdf7, #fdf7e4);
+            border: 1px solid #f0dfb0; border-radius: 12px; padding: 12px;
+        }
+        .metal-card.silver { background: linear-gradient(145deg, #fbfcfd, #eff3f7); border-color: #d7e0ea; }
+        .metal-card.copper { background: linear-gradient(145deg, #fff9f5, #fceee5); border-color: #eed0bd; }
+        .metal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .metal-name { font-weight: 800; font-size: 15px; color: #333; }
+        .metal-sym { font-size: 11px; background: rgba(0,0,0,0.06); padding: 2px 6px; border-radius: 4px; color: #555; font-weight: 600; }
+        .metal-cny { font-size: 19px; font-weight: 800; color: #b87300; margin: 4px 0; }
+        .metal-card.silver .metal-cny { color: #3c4f65; }
+        .metal-card.copper .metal-cny { color: #b54d1b; }
+        .metal-sub { font-size: 12px; color: #666; line-height: 1.5; }
+
+        /* 🗞️ 行业新闻筛选面板 */
+        .pill-group { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .filter-pill {
+            padding: 6px 11px; border-radius: 20px; border: 1px solid #dce0e5;
+            background: #f8f9fa; color: #555; font-size: 12px; font-weight: 600; cursor: pointer;
+        }
+        .filter-pill.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .news-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+        .news-toolbar input[type="text"] { flex: 1; padding: 9px 12px; font-size: 14px; }
+        .major-toggle {
+            display: flex; align-items: center; gap: 5px; font-size: 12px; color: #444;
+            margin-bottom: 12px; cursor: pointer; user-select: none;
+        }
+        .major-toggle input { width: auto; padding: 0; margin: 0; appearance: checkbox; }
+        .news-list { display: flex; flex-direction: column; gap: 10px; max-height: 460px; overflow-y: auto; }
+        .news-card {
+            display: block; text-decoration: none; color: inherit;
+            background: #fafcff; border: 1px solid #e4ecf5; border-radius: 10px;
+            padding: 11px 12px; transition: border-color 0.15s;
+        }
+        .news-card:hover { border-color: var(--primary); background: #f2f7ff; }
+        .news-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 11px; color: #888; margin-bottom: 5px; }
+        .news-tag { background: #e8f1ff; color: #005bb5; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+        .news-tag.major { background: #ffeaea; color: #d92b20; }
+        .news-title { font-size: 14px; font-weight: 600; color: #222; line-height: 1.45; }
+
         /* 🧮 科学计算器 */
         .calc-screen {
             width: 100%; height: 80px; background: #1c1c1e; color: #fff; border-radius: 12px;
-            font-size: 36px; text-align: right; padding: 15px; box-sizing: border-box;
+            font-size: 34px; text-align: right; padding: 15px; box-sizing: border-box;
             margin-bottom: 12px; font-family: monospace; overflow-x: auto; white-space: nowrap;
             display: flex; align-items: center; justify-content: flex-end;
         }
@@ -146,18 +228,36 @@
 <div class="container">
     <div class="header-section">
         <h1>🚀 终极全能计算器</h1>
-        <p>安全无广・科学精准・工程助手</p>
+        <p>实时汇率・贵金属克价・行业快讯・工程助手</p>
     </div>
 
+    <!-- 📰 顶部各行业重大新闻条框 -->
+    <div class="news-ticker-bar" id="newsTickerBar">
+        <span class="ticker-badge">重大快讯</span>
+        <span class="ticker-cat" id="tickerCat">加载中</span>
+        <div class="ticker-link-wrap">
+            <a id="tickerLink" class="ticker-link" href="#" target="_blank" rel="noopener noreferrer">正在从全网获取各行业最新动态...</a>
+        </div>
+        <div class="ticker-controls">
+            <button class="ticker-btn" onclick="stepTicker(-1)" title="上一条">‹</button>
+            <button class="ticker-btn" onclick="stepTicker(1)" title="下一条">›</button>
+            <button class="ticker-btn" onclick="switchTab('news')">筛选</button>
+        </div>
+    </div>
+
+    <!-- 🧭 导航栏 -->
     <div class="nav-grid">
-        <button class="nav-btn active" onclick="switchTab('loan')">房贷计算</button>
-        <button class="nav-btn" onclick="switchTab('reverse')">反推利率</button>
-        <button class="nav-btn" onclick="switchTab('calc')">科学计算</button>
-        <button class="nav-btn" onclick="switchTab('forex')">汇率换算</button>
-        <button class="nav-btn" onclick="switchTab('unit')">工程换算</button>
-        <button class="nav-btn" onclick="switchTab('density')">材质密度</button>
+        <button class="nav-btn active" data-tab="loan" onclick="switchTab('loan')">房贷计算</button>
+        <button class="nav-btn" data-tab="reverse" onclick="switchTab('reverse')">反推利率</button>
+        <button class="nav-btn" data-tab="calc" onclick="switchTab('calc')">科学计算</button>
+        <button class="nav-btn" data-tab="forex" onclick="switchTab('forex')">1美元汇率</button>
+        <button class="nav-btn" data-tab="metals" onclick="switchTab('metals')">贵金属克价</button>
+        <button class="nav-btn" data-tab="news" onclick="switchTab('news')">行业新闻</button>
+        <button class="nav-btn" data-tab="unit" onclick="switchTab('unit')">工程换算</button>
+        <button class="nav-btn" data-tab="density" onclick="switchTab('density')">材质密度</button>
     </div>
 
+    <!-- 1. 房贷计算 -->
     <div id="loan" class="content active">
         <div class="form-group">
             <label>还款方式</label>
@@ -229,9 +329,11 @@
         </div>
     </div>
 
+    <!-- 2. 反推利率 -->
     <div id="reverse" class="content">
         <div style="background:#fffbf0; padding:12px; border-radius:8px; font-size:13px; color:#b37400; margin-bottom:15px; border:1px solid #ffeeba;">
-            💡 已知放款额和月供，反算真实年化利率(IRR)。
+            💡 已知放款额和月供，反算真实年化利率(IRR)。<br>
+            *注: 若选择等额本金模式，月供请填<b>首月月供</b>。
         </div>
         <div class="form-group">
             <label>反推模式</label>
@@ -263,7 +365,7 @@
         </div>
         <div class="form-group" id="inputInterest" style="display:none;">
             <label>总利息(万)</label>
-            <input type="number" id="revInterest" placeholder="如 55.7" min="0" inputmode="decimal">
+            <input type="number" id="revInterest" placeholder="如 0.7" min="0" inputmode="decimal">
         </div>
         <button class="action-btn" onclick="calculateReverseRate()">反向推算</button>
         <button class="reset-btn" onclick="resetInputs('reverse')">重置输入</button>
@@ -274,6 +376,7 @@
         </div>
     </div>
 
+    <!-- 3. 科学计算 -->
     <div id="calc" class="content">
         <div class="calc-screen" id="calcDisplay">0</div>
         <div class="calc-grid">
@@ -314,31 +417,103 @@
         </div>
     </div>
 
+    <!-- 4. 实时汇率 (1美元基准 + 任意换算) -->
     <div id="forex" class="content">
+        <div class="section-title" style="margin-top:0;">
+            <span>💵 1 美元 (USD) 实时兑换各国货币</span>
+            <span id="rateStatus" style="font-size:11px; color:#888; font-weight:normal;">加载中...</span>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+            <input type="text" id="usdFilterInput" placeholder="筛选币种 (如: 人民币 / CNY / 日元 / EUR)" oninput="renderUsdBoard()">
+        </div>
+        <div id="usdBoard" class="usd-grid"></div>
+
+        <div class="section-title"><span>🔄 自由货币换算器 (点击上方卡片可快选)</span></div>
         <div class="form-group">
             <label>持有金额</label>
             <div class="forex-row">
-                <input type="number" id="forexAmount" value="100" oninput="calculateForex()" inputmode="decimal">
-                <img id="fromFlag" class="forex-flag" src="https://flagcdn.com/w40/cn.png">
+                <input type="number" id="forexAmount" value="1" oninput="calculateForex()" inputmode="decimal">
+                <img id="fromFlag" class="forex-flag" src="https://flagcdn.com/w40/us.png" alt="">
                 <select id="fromCurrency" class="forex-select" onchange="updateFlags(); calculateForex()"></select>
             </div>
         </div>
-        <div style="text-align:center; color:#aaa; margin: 5px 0;">⬇️</div>
+        <div style="text-align:center; color:#aaa; margin: 4px 0;">⬇️</div>
         <div class="form-group">
             <label>目标货币</label>
             <div class="forex-row">
                 <input type="text" id="forexResult" readonly style="background:#f9f9f9; color:var(--primary);">
-                <img id="toFlag" class="forex-flag" src="https://flagcdn.com/w40/us.png">
+                <img id="toFlag" class="forex-flag" src="https://flagcdn.com/w40/cn.png" alt="">
                 <select id="toCurrency" class="forex-select" onchange="updateFlags(); calculateForex()"></select>
             </div>
         </div>
-        <p style="text-align:center; font-size:12px; color:#999; margin-top:8px;" id="rateStatus">加载中...</p>
-        <button class="action-btn" onclick="fetchRates()" style="background:#34c759;">刷新汇率</button>
-
-        <h4 style="margin: 25px 0 10px; font-size:14px; color:#555; border-left: 4px solid #34c759; padding-left: 8px;">参考汇率 (含人民币)</h4>
-        <div id="forexMultiResult"></div>
+        <button class="action-btn" onclick="fetchRates(true)" style="background:#34c759;">🔄 刷新全球汇率</button>
     </div>
 
+    <!-- 5. 贵金属单价克重 -->
+    <div id="metals" class="content">
+        <div class="section-title" style="margin-top:0;">
+            <span>🥇 实时贵金属单价 (克重 / 盎司)</span>
+            <span id="metalStatus" style="font-size:11px; color:#888; font-weight:normal;">加载中...</span>
+        </div>
+        <div id="metalGrid" class="metal-grid"></div>
+        <button class="action-btn" onclick="fetchMetals()" style="background: linear-gradient(135deg, #d48806, #b36b00); margin-top:14px;">🔄 刷新贵金属实时报价</button>
+
+        <div class="section-title"><span>⚖️ 贵金属克重估值计算器</span></div>
+        <div class="row-input form-group">
+            <div style="flex:1">
+                <label>选择金属</label>
+                <select id="metalCalcType" onchange="updateMetalPurityOptions(); calcMetalWeight()">
+                    <option value="XAU">黄金 (XAU)</option>
+                    <option value="XAG">白银 (XAG)</option>
+                    <option value="XPT">铂金 (XPT)</option>
+                    <option value="XPD">钯金 (XPD)</option>
+                </select>
+            </div>
+            <div style="flex:1">
+                <label>成色 / 纯度</label>
+                <select id="metalPurity" onchange="calcMetalWeight()"></select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>输入克重 (克 / g)</label>
+            <input type="number" id="metalWeightInput" value="10" min="0" inputmode="decimal" oninput="calcMetalWeight()">
+        </div>
+        <div id="metalCalcResult" class="result-box" style="display:block; background:#fffcf2; border-color:#f0dfb0;">
+            <div class="result-item"><span>折合人民币总价：</span><strong id="metalValCNY" style="color:#b87300;">--</strong></div>
+            <div class="result-item"><span>折合美元总价：</span><strong id="metalValUSD" style="color:#555;">--</strong></div>
+        </div>
+    </div>
+
+    <!-- 6. 各行业重大新闻筛选 -->
+    <div id="news" class="content">
+        <div class="section-title" style="margin-top:0;">
+            <span>🗞️ 各行业重大新闻 (全网获取 & 筛选)</span>
+            <span id="newsStatus" style="font-size:11px; color:#888; font-weight:normal;">准备就绪</span>
+        </div>
+
+        <div class="pill-group" id="industryPills">
+            <button class="filter-pill active" data-ind="all" onclick="setIndustryFilter('all')">全部行业</button>
+            <button class="filter-pill" data-ind="finance" onclick="setIndustryFilter('finance')">金融财经</button>
+            <button class="filter-pill" data-ind="tech" onclick="setIndustryFilter('tech')">科技AI</button>
+            <button class="filter-pill" data-ind="energy" onclick="setIndustryFilter('energy')">能源金属</button>
+            <button class="filter-pill" data-ind="auto" onclick="setIndustryFilter('auto')">制造汽车</button>
+            <button class="filter-pill" data-ind="health" onclick="setIndustryFilter('health')">医疗健康</button>
+        </div>
+
+        <div class="news-toolbar">
+            <input type="text" id="newsSearchInput" placeholder="输入行业/公司/关键词筛选 (如: 央行、芯片、黄金)" oninput="renderNewsList()">
+            <button class="action-btn" style="width:auto; margin:0; padding:10px 14px; font-size:13px;" onclick="fetchAllNews(true)">刷新</button>
+        </div>
+
+        <label class="major-toggle">
+            <input type="checkbox" id="onlyMajorCheckbox" onchange="renderNewsList()">
+            <span>仅看“重大 / 政策 / 突破 / 异动”筛选新闻</span>
+        </label>
+
+        <div id="newsList" class="news-list"></div>
+    </div>
+
+    <!-- 7. 工程换算 -->
     <div id="unit" class="content">
         <div class="form-group">
             <label>选择类型</label>
@@ -373,6 +548,7 @@
         </div>
     </div>
     
+    <!-- 8. 材质密度 -->
     <div id="density" class="content">
         <div class="form-group">
             <label>选择材料 (建筑/金属/生活)</label>
@@ -389,18 +565,21 @@
 </div>
 
 <script>
-    /* --- 全局逻辑 --- */
-    window.currentScheduleData = []; 
+    /* --- 全局状态 --- */
+    window.currentScheduleData = [];
+    window.ratesLoaded = false;
+    window.metalsLoaded = false;
+    window.newsLoaded = false;
 
     function switchTab(name) {
         document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active'));
-        const btns = document.querySelectorAll('.nav-btn');
-        btns.forEach(btn => {
-            if(btn.getAttribute('onclick').includes(name)) btn.classList.add('active');
+        document.querySelectorAll('.nav-btn').forEach(e => {
+            e.classList.toggle('active', e.dataset.tab === name);
         });
         document.getElementById(name).classList.add('active');
-        if(name === 'forex' && !window.ratesLoaded) fetchRates(); 
+        if(name === 'forex' && !window.ratesLoaded) fetchRates();
+        if(name === 'metals' && !window.metalsLoaded) fetchMetals();
+        if(name === 'news' && !window.newsLoaded) fetchAllNews();
     }
 
     function resetInputs(id) {
@@ -408,7 +587,7 @@
         document.querySelectorAll(`#${id} .result-box`).forEach(b => b.style.display = 'none');
     }
 
-    /* --- 🧮 科学计算器 (安全逻辑) --- */
+    /* --- 🧮 科学计算器 --- */
     let calcExpr = "";
     function calcAppend(val) {
         if(val === '.' && calcExpr.endsWith('.')) return;
@@ -422,20 +601,13 @@
         try {
             if(calcExpr === "") return;
             let evalStr = calcExpr
-                .replace(/×/g, '*')
-                .replace(/÷/g, '/')
-                .replace(/\^/g, '**')
-                .replace(/π/g, 'Math.PI')
-                .replace(/e/g, 'Math.E')
-                .replace(/sin\(/g, 'Math.sin(')
-                .replace(/cos\(/g, 'Math.cos(')
-                .replace(/tan\(/g, 'Math.tan(')
-                .replace(/log\(/g, 'Math.log10(')
-                .replace(/ln\(/g, 'Math.log(')
-                .replace(/sqrt\(/g, 'Math.sqrt(');
+                .replace(/×/g, '*').replace(/÷/g, '/').replace(/\^/g, '**')
+                .replace(/π/g, 'Math.PI').replace(/e/g, 'Math.E')
+                .replace(/sin\(/g, 'Math.sin(').replace(/cos\(/g, 'Math.cos(')
+                .replace(/tan\(/g, 'Math.tan(').replace(/log\(/g, 'Math.log10(')
+                .replace(/ln\(/g, 'Math.log(').replace(/sqrt\(/g, 'Math.sqrt(');
 
             if (!/^[0-9.\+\-\*\/\%\(\)\s(Math\.)]+$/.test(evalStr)) throw "Sec";
-
             let result = new Function('return ' + evalStr)();
             if(!isFinite(result)) throw "Err";
             result = parseFloat(result.toPrecision(12));
@@ -530,9 +702,7 @@
         document.getElementById('totalPayment').innerText = (totalPay/10000).toFixed(2) + " 万";
 
         if(hasEarlyPay) {
-            let orgInt = 0;
-            if(type === 'equal_payment') orgInt = (monthly * N) - P;
-            else orgInt = (N+1)*P*R/2;
+            let orgInt = (type === 'equal_payment') ? ((monthly * N) - P) : ((N+1)*P*R/2);
             let save = (orgInt - totalInt)/10000;
             document.getElementById('repaySavings').innerText = `⚡️ 节省约 ${save.toFixed(2)} 万元利息`;
             document.getElementById('earlyRepayResult').style.display = 'block';
@@ -575,29 +745,113 @@
         link.click();
     }
 
-    /* --- 💱 汇率 (核心修复: 国旗 + CNY 强制显示) --- */
-    const cNameMap = { 'CNY':'人民币','USD':'美元','EUR':'欧元','HKD':'港币','JPY':'日元', 'GBP':'英镑','AUD':'澳元','CAD':'加元','SGD':'新币','KRW':'韩元', 'THB':'泰铢','TWD':'台币','RUB':'卢布','MYR':'马币','INR':'卢比', 'CHF':'瑞郎','NZD':'新西兰元' };
-    const countryCodes = { 'CNY':'cn','USD':'us','EUR':'eu','HKD':'hk','JPY':'jp','GBP':'gb','AUD':'au', 'CAD':'ca','SGD':'sg','KRW':'kr','THB':'th','TWD':'tw','RUB':'ru','MYR':'my', 'INR':'in','CHF':'ch','NZD':'nz' };
-    let rates = {};
+    /* --- 💵 1美元实时汇率看板 + 货币换算 --- */
+    const cNameMap = {
+        'CNY':'人民币','USD':'美元','EUR':'欧元','JPY':'日元','GBP':'英镑',
+        'HKD':'港币','KRW':'韩元','AUD':'澳元','CAD':'加元','SGD':'新加坡元',
+        'CHF':'瑞士法郎','TWD':'新台币','THB':'泰铢','MYR':'马来西亚林吉特',
+        'INR':'印度卢比','RUB':'俄罗斯卢布','NZD':'新西兰元','VND':'越南盾',
+        'IDR':'印尼盾','PHP':'菲律宾比索'
+    };
+    const countryCodes = {
+        'CNY':'cn','USD':'us','EUR':'eu','JPY':'jp','GBP':'gb',
+        'HKD':'hk','KRW':'kr','AUD':'au','CAD':'ca','SGD':'sg',
+        'CHF':'ch','TWD':'tw','THB':'th','MYR':'my','INR':'in',
+        'RUB':'ru','NZD':'nz','VND':'vn','IDR':'id','PHP':'ph'
+    };
+    let rates = {}; // 以 USD 为基准: 1 USD = rates[code]
 
-    async function fetchRates() {
+    async function fetchRates(manual = false) {
+        const statusEl = document.getElementById('rateStatus');
+        if(manual) statusEl.innerText = "正在刷新...";
         try {
-            let res = await fetch('https://api.exchangerate-api.com/v4/latest/CNY');
+            let res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+            if(!res.ok) throw new Error('primary failed');
             let data = await res.json();
             rates = data.rates;
+            rates.USD = 1;
             window.ratesLoaded = true;
-            document.getElementById('rateStatus').innerText = "更新: " + data.date;
-            
-            let html = Object.keys(cNameMap).map(c => `<option value="${c}">${c}</option>`).join('');
-            if(document.getElementById('fromCurrency').innerHTML === "") {
-                document.getElementById('fromCurrency').innerHTML = html;
-                document.getElementById('toCurrency').innerHTML = html;
-                document.getElementById('fromCurrency').value = 'CNY';
-                document.getElementById('toCurrency').value = 'USD';
-                updateFlags();
+            statusEl.innerText = "更新: " + (data.date || new Date().toLocaleTimeString());
+        } catch(e) {
+            try {
+                // 备用源: fawazahmed0 currency-api
+                let res2 = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+                let data2 = await res2.json();
+                rates = {};
+                for(let k in data2.usd) rates[k.toUpperCase()] = data2.usd[k];
+                rates.USD = 1;
+                window.ratesLoaded = true;
+                statusEl.innerText = "备用源更新: " + data2.date;
+            } catch(err2) {
+                statusEl.innerText = "汇率加载失败，请检查网络";
+                return;
             }
-            calculateForex();
-        } catch(e) { document.getElementById('rateStatus').innerText = "汇率加载失败"; }
+        }
+
+        let fromSel = document.getElementById('fromCurrency');
+        let toSel = document.getElementById('toCurrency');
+        if(fromSel.innerHTML === "") {
+            let html = Object.keys(cNameMap).map(c => `<option value="${c}">${c} ${cNameMap[c]}</option>`).join('');
+            fromSel.innerHTML = html;
+            toSel.innerHTML = html;
+            fromSel.value = 'USD';
+            toSel.value = 'CNY';
+            updateFlags();
+        }
+        renderUsdBoard();
+        calculateForex();
+        if(window.metalsLoaded) renderMetals(); // 同步更新贵金属的人民币克价
+    }
+
+    function renderUsdBoard() {
+        const board = document.getElementById('usdBoard');
+        if(!window.ratesLoaded) return;
+        const kw = (document.getElementById('usdFilterInput').value || '').trim().toLowerCase();
+        board.innerHTML = '';
+
+        Object.keys(cNameMap).forEach(code => {
+            if(code === 'USD' || !rates[code]) return;
+            const cnName = cNameMap[code];
+            if(kw && !code.toLowerCase().includes(kw) && !cnName.includes(kw)) return;
+
+            const card = document.createElement('div');
+            card.className = 'usd-card';
+            card.onclick = () => {
+                document.getElementById('fromCurrency').value = 'USD';
+                document.getElementById('toCurrency').value = code;
+                updateFlags();
+                calculateForex();
+            };
+
+            const left = document.createElement('div');
+            left.className = 'usd-left';
+            const img = document.createElement('img');
+            img.className = 'forex-flag';
+            img.src = `https://flagcdn.com/w40/${countryCodes[code]}.png`;
+            img.alt = code;
+            const labelWrap = document.createElement('div');
+            const title = document.createElement('span');
+            title.style.fontWeight = '700';
+            title.textContent = cnName;
+            const sub = document.createElement('small');
+            sub.textContent = `1 USD → ${code}`;
+            labelWrap.appendChild(title);
+            labelWrap.appendChild(sub);
+            left.appendChild(img);
+            left.appendChild(labelWrap);
+
+            const valWrap = document.createElement('div');
+            valWrap.className = 'usd-val';
+            const rateNum = rates[code];
+            valWrap.textContent = rateNum >= 100 ? rateNum.toFixed(2) : rateNum.toFixed(4);
+            const revSub = document.createElement('small');
+            revSub.textContent = `1 ${code} ≈ ${(1/rateNum).toFixed(4)} $`;
+            valWrap.appendChild(revSub);
+
+            card.appendChild(left);
+            card.appendChild(valWrap);
+            board.appendChild(card);
+        });
     }
 
     function updateFlags() {
@@ -610,22 +864,360 @@
     function calculateForex() {
         if(!window.ratesLoaded) return;
         let amt = parseFloat(document.getElementById('forexAmount').value);
-        if(isNaN(amt)) return;
+        if(isNaN(amt)) { document.getElementById('forexResult').value = ""; return; }
         let f = document.getElementById('fromCurrency').value;
         let t = document.getElementById('toCurrency').value;
         let val = (amt / rates[f]) * rates[t];
         document.getElementById('forexResult').value = val.toFixed(4) + " " + t;
+    }
 
-        // 智能列表：如果非 RMB 兑换，强制显示 RMB
-        let others = ['USD','EUR','JPY','HKD','GBP','CNY'].filter(c => c!==f && c!==t);
-        // 去重
-        others = [...new Set(others)];
-        
-        let html = others.map(c => {
-            let v = (amt / rates[f]) * rates[c];
-            return `<div class="forex-item"><span><img src="https://flagcdn.com/w20/${countryCodes[c]}.png" style="vertical-align:middle;margin-right:5px;width:16px;">${cNameMap[c]}</span><strong>${v.toFixed(4)}</strong></div>`
-        }).join('');
-        document.getElementById('forexMultiResult').innerHTML = html;
+    /* --- 🥇 贵金属单价克重 & 估值 --- */
+    const TROY_OZ_GRAMS = 31.1034768;
+    const LB_GRAMS = 453.59237;
+    const metalDefs = [
+        { symbol: 'XAU', name: '黄金', unitLabel: '盎司', gramsPerUnit: TROY_OZ_GRAMS, style: '' },
+        { symbol: 'XAG', name: '白银', unitLabel: '盎司', gramsPerUnit: TROY_OZ_GRAMS, style: 'silver' },
+        { symbol: 'XPT', name: '铂金', unitLabel: '盎司', gramsPerUnit: TROY_OZ_GRAMS, style: 'silver' },
+        { symbol: 'XPD', name: '钯金', unitLabel: '盎司', gramsPerUnit: TROY_OZ_GRAMS, style: 'silver' },
+        { symbol: 'HG',  name: '现货铜', unitLabel: '磅', gramsPerUnit: LB_GRAMS, style: 'copper' }
+    ];
+    let metalPrices = {}; // { XAU: { price: USD_per_unit, updatedAt: ... } }
+
+    async function fetchMetals() {
+        const statusEl = document.getElementById('metalStatus');
+        statusEl.innerText = "正在获取实时金价...";
+
+        if(!window.ratesLoaded) await fetchRates();
+
+        const results = await Promise.allSettled(
+            metalDefs.map(m => fetch(`https://api.gold-api.com/price/${m.symbol}`).then(r => {
+                if(!r.ok) throw new Error(m.symbol);
+                return r.json();
+            }))
+        );
+
+        let successCount = 0;
+        results.forEach((res, idx) => {
+            const sym = metalDefs[idx].symbol;
+            if(res.status === 'fulfilled' && res.value && typeof res.value.price === 'number') {
+                metalPrices[sym] = res.value;
+                successCount++;
+            }
+        });
+
+        // 若主接口部分失败，尝试用 jsDelivr currency-api 兜底 XAU/XAG/XPT/XPD
+        if(successCount < 4) {
+            try {
+                let fbRes = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+                let fbData = await fbRes.json();
+                ['xau','xag','xpt','xpd'].forEach(lc => {
+                    const uc = lc.toUpperCase();
+                    if(!metalPrices[uc] && fbData.usd && fbData.usd[lc]) {
+                        metalPrices[uc] = {
+                            symbol: uc,
+                            price: 1 / fbData.usd[lc],
+                            updatedAtReadable: fbData.date + ' (备用源)'
+                        };
+                        successCount++;
+                    }
+                });
+            } catch(e) {}
+        }
+
+        if(successCount > 0) {
+            window.metalsLoaded = true;
+            statusEl.innerText = "更新: " + new Date().toLocaleTimeString();
+            renderMetals();
+            calcMetalWeight();
+        } else {
+            statusEl.innerText = "贵金属行情获取失败，请稍后重试";
+        }
+    }
+
+    function renderMetals() {
+        const grid = document.getElementById('metalGrid');
+        grid.innerHTML = '';
+        const usdToCny = rates['CNY'] || 7.2;
+
+        metalDefs.forEach(m => {
+            const info = metalPrices[m.symbol];
+            const card = document.createElement('div');
+            card.className = `metal-card ${m.style}`;
+
+            const head = document.createElement('div');
+            head.className = 'metal-head';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'metal-name';
+            nameSpan.textContent = m.name;
+            const symSpan = document.createElement('span');
+            symSpan.className = 'metal-sym';
+            symSpan.textContent = m.symbol;
+            head.appendChild(nameSpan);
+            head.appendChild(symSpan);
+            card.appendChild(head);
+
+            const cnyEl = document.createElement('div');
+            cnyEl.className = 'metal-cny';
+            const subEl = document.createElement('div');
+            subEl.className = 'metal-sub';
+
+            if(info && info.price) {
+                const usdPerGram = info.price / m.gramsPerUnit;
+                const cnyPerGram = usdPerGram * usdToCny;
+                if(m.symbol === 'HG') {
+                    // 铜单价较低，展示 元/千克 和 元/克
+                    cnyEl.textContent = `¥${(cnyPerGram * 1000).toFixed(2)} / 千克`;
+                    subEl.textContent = `≈ ¥${cnyPerGram.toFixed(4)} / 克 | $${usdPerGram.toFixed(4)} / 克\n现货: $${info.price.toFixed(3)} / ${m.unitLabel}`;
+                } else {
+                    cnyEl.textContent = `¥${cnyPerGram.toFixed(2)} / 克`;
+                    subEl.textContent = `美元: $${usdPerGram.toFixed(3)} / 克\n现货: $${info.price.toFixed(2)} / ${m.unitLabel}`;
+                }
+            } else {
+                cnyEl.textContent = '暂无报价';
+                subEl.textContent = '请点击刷新重试';
+            }
+            subEl.style.whiteSpace = 'pre-line';
+            card.appendChild(cnyEl);
+            card.appendChild(subEl);
+            grid.appendChild(card);
+        });
+    }
+
+    const metalPurityPresets = {
+        'XAU': [['1','足金 (999.9 / 24K)'], ['0.916','22K金 (91.6%)'], ['0.75','18K金 (75%)'], ['0.585','14K金 (58.5%)']],
+        'XAG': [['1','足银 (999)'], ['0.925','925银 (92.5%)']],
+        'XPT': [['1','足铂 (Pt999)'], ['0.95','Pt950 (95%)'], ['0.9','Pt900 (90%)']],
+        'XPD': [['1','足钯 (Pd999)'], ['0.95','Pd950 (95%)']]
+    };
+
+    function updateMetalPurityOptions() {
+        const type = document.getElementById('metalCalcType').value;
+        const sel = document.getElementById('metalPurity');
+        sel.innerHTML = (metalPurityPresets[type] || [['1','纯金属']]).map(p => `<option value="${p[0]}">${p[1]}</option>`).join('');
+    }
+
+    function calcMetalWeight() {
+        const sym = document.getElementById('metalCalcType').value;
+        const purity = parseFloat(document.getElementById('metalPurity').value) || 1;
+        const grams = parseFloat(document.getElementById('metalWeightInput').value);
+        const info = metalPrices[sym];
+        if(!info || isNaN(grams) || grams < 0) {
+            document.getElementById('metalValCNY').innerText = '--';
+            document.getElementById('metalValUSD').innerText = '--';
+            return;
+        }
+        const usdToCny = rates['CNY'] || 7.2;
+        const usdVal = (info.price / TROY_OZ_GRAMS) * grams * purity;
+        const cnyVal = usdVal * usdToCny;
+        document.getElementById('metalValCNY').innerText = `¥${cnyVal.toFixed(2)} 元`;
+        document.getElementById('metalValUSD').innerText = `$${usdVal.toFixed(2)} 美元`;
+    }
+
+    /* --- 🗞️ 各行业重大新闻 (在线拉取 + 智能分类筛选) --- */
+    const industryRules = [
+        { key: 'finance', label: '金融财经', words: ['银行','央行','美联储','利率','汇率','股市','A股','港股','美股','债券','通胀','GDP','经济','财报','IPO','融资','金融','证券','基金','保险','关税','财政'] },
+        { key: 'tech',    label: '科技AI',   words: ['AI','人工智能','大模型','芯片','半导体','算力','软件','互联网','华为','苹果','英伟达','微软','谷歌','OpenAI','科技','通信','量子','机器人','算法','云计算'] },
+        { key: 'energy',  label: '能源金属', words: ['黄金','白银','原油','石油','天然气','新能源','光伏','风电','电池','储能','锂电','矿产','稀土','铜','煤炭','电力','核电','能源','金价','油价'] },
+        { key: 'auto',    label: '制造汽车', words: ['汽车','电动车','新能源车','特斯拉','比亚迪','制造','航空','航天','船舶','工业','供应链','物流','出口','工厂','机械','高铁'] },
+        { key: 'health',  label: '医疗健康', words: ['医疗','医药','生物','疫苗','临床','基因','医院','癌症','药物','健康','制药','医保'] }
+    ];
+    const majorKeywords = ['重大','突发','突破','政策','央行','美联储','暴涨','暴跌','新高','收购','合并','制裁','创新','首次','全球','协议','警告','财报','发布','监管','禁令','降息','加息'];
+
+    let allNewsItems = [];
+    let filteredNewsItems = [];
+    let currentIndustry = 'all';
+    let tickerIndex = 0;
+    let tickerTimer = null;
+    let lastNewsFetchTime = 0;
+
+    function classifyArticle(title) {
+        for(const rule of industryRules) {
+            if(rule.words.some(w => title.toLowerCase().includes(w.toLowerCase()))) {
+                return { key: rule.key, label: rule.label };
+            }
+        }
+        return { key: 'finance', label: '综合财经' };
+    }
+
+    function isMajorHeadline(title) {
+        return majorKeywords.some(w => title.includes(w));
+    }
+
+    function formatGdeltDate(seendate) {
+        if(!seendate || seendate.length < 13) return '最新';
+        return `${seendate.slice(0,4)}-${seendate.slice(4,6)}-${seendate.slice(6,8)} ${seendate.slice(9,11)}:${seendate.slice(11,13)}`;
+    }
+
+    async function fetchAllNews(manual = false) {
+        const now = Date.now();
+        const statusEl = document.getElementById('newsStatus');
+        if(manual && now - lastNewsFetchTime < 5000) {
+            statusEl.innerText = "请求过快，请5秒后再刷新";
+            return;
+        }
+        lastNewsFetchTime = now;
+        statusEl.innerText = "正在全网抓取并筛选...";
+
+        // 1) GDELT DOC 2.0 全球中文财经科技行业新闻
+        const gdeltQuery = encodeURIComponent('(人工智能 OR 芯片 OR 金融 OR 央行 OR 黄金 OR 原油 OR 新能源 OR 汽车 OR 医药 OR 科技 OR 经济) sourcelang:chinese');
+        const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${gdeltQuery}&mode=artlist&maxrecords=50&format=json&sort=DateDesc&timespan=7d`;
+
+        // 2) RSS2JSON 补充源 (36氪 & BBC中文)
+        const rssSources = [
+            'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://36kr.com/feed'),
+            'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://feeds.bbci.co.uk/zhongwen/simp/rss.xml')
+        ];
+
+        const [gdeltRes, ...rssResList] = await Promise.allSettled([
+            fetch(gdeltUrl).then(r => r.ok ? r.json() : null),
+            ...rssSources.map(u => fetch(u).then(r => r.ok ? r.json() : null))
+        ]);
+
+        const merged = [];
+        const seenTitles = new Set();
+
+        const pushItem = (title, url, source, timeStr) => {
+            if(!title || !url) return;
+            const cleanTitle = title.trim();
+            if(cleanTitle.length < 6 || seenTitles.has(cleanTitle)) return;
+            if(!/^https?:\/\//i.test(url)) return;
+            seenTitles.add(cleanTitle);
+            const cat = classifyArticle(cleanTitle);
+            merged.push({
+                title: cleanTitle,
+                url,
+                source: source || '网络资讯',
+                time: timeStr || '最新',
+                industry: cat.key,
+                industryLabel: cat.label,
+                isMajor: isMajorHeadline(cleanTitle)
+            });
+        };
+
+        if(gdeltRes.status === 'fulfilled' && gdeltRes.value && Array.isArray(gdeltRes.value.articles)) {
+            gdeltRes.value.articles.forEach(a => {
+                pushItem(a.title, a.url, a.domain, formatGdeltDate(a.seendate));
+            });
+        }
+
+        rssResList.forEach(r => {
+            if(r.status === 'fulfilled' && r.value && r.value.status === 'ok' && Array.isArray(r.value.items)) {
+                const feedName = (r.value.feed && r.value.feed.title) ? r.value.feed.title.split(' ')[0] : 'RSS快讯';
+                r.value.items.forEach(it => {
+                    pushItem(it.title, it.link, feedName, (it.pubDate || '').slice(0, 16));
+                });
+            }
+        });
+
+        if(merged.length > 0) {
+            // 优先把含“重大”关键词的排到前面一点或保留时间顺序
+            allNewsItems = merged;
+            window.newsLoaded = true;
+            statusEl.innerText = `已筛选 ${merged.length} 条 · ${new Date().toLocaleTimeString()}`;
+            renderNewsList();
+            startTicker();
+        } else {
+            statusEl.innerText = "暂未获取到新闻，请点击刷新重试";
+            document.getElementById('tickerLink').textContent = "新闻源暂时繁忙，点击右侧“筛选”可手动重试";
+        }
+    }
+
+    function setIndustryFilter(ind) {
+        currentIndustry = ind;
+        document.querySelectorAll('#industryPills .filter-pill').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.ind === ind);
+        });
+        renderNewsList();
+    }
+
+    function renderNewsList() {
+        const listEl = document.getElementById('newsList');
+        const kw = (document.getElementById('newsSearchInput').value || '').trim().toLowerCase();
+        const onlyMajor = document.getElementById('onlyMajorCheckbox').checked;
+
+        filteredNewsItems = allNewsItems.filter(item => {
+            if(currentIndustry !== 'all' && item.industry !== currentIndustry) return false;
+            if(onlyMajor && !item.isMajor) return false;
+            if(kw && !item.title.toLowerCase().includes(kw) && !item.source.toLowerCase().includes(kw)) return false;
+            return true;
+        });
+
+        listEl.innerHTML = '';
+        if(filteredNewsItems.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'text-align:center;color:#888;padding:24px;font-size:13px;';
+            empty.textContent = allNewsItems.length ? '当前筛选条件下暂无匹配新闻，试试放宽关键词或行业。' : '正在加载新闻...';
+            listEl.appendChild(empty);
+            return;
+        }
+
+        filteredNewsItems.forEach(item => {
+            const a = document.createElement('a');
+            a.className = 'news-card';
+            a.href = item.url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+
+            const meta = document.createElement('div');
+            meta.className = 'news-meta';
+
+            const tag = document.createElement('span');
+            tag.className = 'news-tag';
+            tag.textContent = item.industryLabel;
+            meta.appendChild(tag);
+
+            if(item.isMajor) {
+                const mTag = document.createElement('span');
+                mTag.className = 'news-tag major';
+                mTag.textContent = '重大热点';
+                meta.appendChild(mTag);
+            }
+
+            const srcSpan = document.createElement('span');
+            srcSpan.textContent = `${item.source} · ${item.time}`;
+            meta.appendChild(srcSpan);
+
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'news-title';
+            titleDiv.textContent = item.title;
+
+            a.appendChild(meta);
+            a.appendChild(titleDiv);
+            listEl.appendChild(a);
+        });
+    }
+
+    function updateTickerDisplay() {
+        const pool = allNewsItems.filter(i => i.isMajor).length >= 3
+            ? allNewsItems.filter(i => i.isMajor)
+            : allNewsItems;
+        if(pool.length === 0) return;
+        tickerIndex = ((tickerIndex % pool.length) + pool.length) % pool.length;
+        const item = pool[tickerIndex];
+        document.getElementById('tickerCat').textContent = item.industryLabel;
+        const link = document.getElementById('tickerLink');
+        link.textContent = item.title;
+        link.href = item.url;
+    }
+
+    function stepTicker(delta) {
+        tickerIndex += delta;
+        updateTickerDisplay();
+    }
+
+    function startTicker() {
+        updateTickerDisplay();
+        if(tickerTimer) clearInterval(tickerTimer);
+        tickerTimer = setInterval(() => {
+            tickerIndex++;
+            updateTickerDisplay();
+        }, 5000);
+        const bar = document.getElementById('newsTickerBar');
+        bar.onmouseenter = () => { if(tickerTimer) clearInterval(tickerTimer); };
+        bar.onmouseleave = () => {
+            if(tickerTimer) clearInterval(tickerTimer);
+            tickerTimer = setInterval(() => { tickerIndex++; updateTickerDisplay(); }, 5000);
+        };
     }
 
     /* --- ⚖️ 万能单位 --- */
@@ -708,40 +1300,54 @@
         let method = document.getElementById('revMethod').value;
         let P = parseFloat(document.getElementById('revPrincipal').value) * 10000;
         let n = parseFloat(document.getElementById('revYears').value) * 12;
+
         if(isNaN(P) || isNaN(n) || P<=0 || n<=0) { alert("请输入有效数值"); return; }
-        let targetMonthly = 0;
-        let totalPay = 0;
+
+        let targetMonthly = 0, targetTotalInterest = 0;
         if(mode === 'target_monthly_payment') {
             targetMonthly = parseFloat(document.getElementById('revMonthly').value);
-            if(isNaN(targetMonthly)) return;
-            totalPay = targetMonthly * n;
+            if(isNaN(targetMonthly)) { alert("请输入有效的月供"); return; }
         } else {
-            let totalInt = parseFloat(document.getElementById('revInterest').value) * 10000;
-            if(isNaN(totalInt)) return;
-            totalPay = P + totalInt;
-            targetMonthly = totalPay / n; 
+            targetTotalInterest = parseFloat(document.getElementById('revInterest').value) * 10000;
+            if(isNaN(targetTotalInterest)) { alert("请输入有效的总利息"); return; }
         }
-        let rate = 0;
+
+        let rate = 0, totalPayDisplay = 0;
         if(method === 'equal_principal') {
-            let intVal = totalPay - P;
-            rate = (2 * intVal) / ((n+1)*P) * 12;
+            if(mode === 'target_monthly_payment') {
+                let monthlyPrincipal = P / n;
+                if(targetMonthly <= monthlyPrincipal) { alert("输入的月供必须大于每月本金 (" + monthlyPrincipal.toFixed(2) + "元)"); return; }
+                let r_month = (targetMonthly - monthlyPrincipal) / P;
+                rate = r_month * 12;
+                totalPayDisplay = P + (n+1)*P*r_month/2;
+            } else {
+                let r_month = (targetTotalInterest * 2) / ((n+1)*P);
+                rate = r_month * 12;
+                totalPayDisplay = P + targetTotalInterest;
+            }
         } else {
-            let min = 0, max = 1; 
-            for(let i=0; i<50; i++) {
+            let targetM = (mode === 'target_interest') ? ((P + targetTotalInterest) / n) : targetMonthly;
+            totalPayDisplay = (mode === 'target_interest') ? (P + targetTotalInterest) : (targetM * n);
+            let min = 0, max = 1;
+            for(let i=0; i<100; i++) {
                 let mid = (min+max)/2;
                 let k = Math.pow(1+mid, n);
-                let m = P*mid*k/(k-1);
-                if(mode === 'target_monthly_payment') { if(m > targetMonthly) max = mid; else min = mid; } 
-                else { if(m*n > totalPay) max = mid; else min = mid; }
+                let m = P * mid * k / (k-1);
+                if(m > targetM) max = mid; else min = mid;
+                if(Math.abs(m - targetM) < 0.001) break;
             }
             rate = min * 12;
         }
+
         document.getElementById('revRateResult').innerText = (rate*100).toFixed(3) + "%";
-        document.getElementById('revTotalPay').innerText = (totalPay/10000).toFixed(2) + " 万";
-        let note = mode === 'target_monthly_payment' ? `总利息: ${((totalPay-P)/10000).toFixed(2)}万` : `参考月供: ${targetMonthly.toFixed(0)}元`;
+        document.getElementById('revTotalPay').innerText = (totalPayDisplay/10000).toFixed(2) + " 万";
+        let note = (method === 'equal_principal' && mode === 'target_monthly_payment')
+            ? "基于首月月供反推"
+            : (mode === 'target_monthly_payment' ? `总利息: ${((totalPayDisplay-P)/10000).toFixed(2)}万` : `参考月供: ${(totalPayDisplay/n).toFixed(0)}元`);
         document.getElementById('revOtherResult').innerText = note;
         document.getElementById('revResult').style.display = 'block';
     }
+
     function updateRevInputs() {
         let mode = document.getElementById('revMode').value;
         document.getElementById('inputMonthly').style.display = mode === 'target_monthly_payment' ? 'block' : 'none';
@@ -753,6 +1359,11 @@
         updateUnitOptions(); 
         updateRevInputs();
         initDensity();
+        updateMetalPurityOptions();
+        // 自动预加载实时汇率、贵金属克价与顶部重大新闻条框
+        fetchRates();
+        fetchMetals();
+        fetchAllNews();
     };
 </script>
 
